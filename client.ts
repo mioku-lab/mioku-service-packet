@@ -1,5 +1,10 @@
 import { logger } from "mioki";
-import { createTransport, detectImplementation, fetchVersionInfo, resolveKindFromBot } from "./adapters";
+import {
+  createTransport,
+  detectImplementation,
+  fetchVersionInfo,
+  resolveKindFromBot,
+} from "./adapters";
 import type { RawPacketTransport } from "./adapters";
 import {
   buildGetGroupMsgPacket,
@@ -8,6 +13,7 @@ import {
   buildRecvLongMsgPacket,
   buildSendLongMsgPacket,
   buildSendMsgPacket,
+  buildTextMsgPacket,
   gunzipBuffer,
   gzipBuffer,
   isGroupEvent,
@@ -28,6 +34,15 @@ import type {
 
 const UNSUPPORTED_MESSAGE =
   "无法识别实现端（napcat/llbot），请确认实现端为 NapCat 或 LLBot，或通过 PacketClientOptions.implementation 显式指定";
+
+/** get_msg 响应中可用于获取消息序号的字段（不同实现端字段名不同） */
+interface GetMsgResult {
+  real_seq?: number | string;
+  message_seq?: number | string;
+  seq?: number | string;
+  real_id?: number | string;
+  message_id?: number | string;
+}
 
 export class PacketClientImpl implements PacketClient {
   readonly bot: BotLike;
@@ -77,13 +92,35 @@ export class PacketClientImpl implements PacketClient {
     return response.hex ? protobuf.decode(response.hex) : null;
   }
 
-  async sendElement(e: ChatEvent, content: PbMessage): Promise<PbMessage | null> {
-    return this.send("MessageSvc.PbSendMsg", buildSendMsgPacket(resolveTarget(e), content));
+  async sendElement(
+    e: ChatEvent,
+    content: PbMessage | PbMessage[],
+  ): Promise<PbMessage | null> {
+    return this.send(
+      "MessageSvc.PbSendMsg",
+      buildSendMsgPacket(resolveTarget(e), content),
+    );
   }
 
-  async uploadLong(e: ChatEvent, content: PbMessage): Promise<string | undefined> {
+  async sendText(
+    e: ChatEvent,
+    text: string,
+    color?: number,
+  ): Promise<PbMessage | null> {
+    return this.send(
+      "MessageSvc.PbSendMsg",
+      buildTextMsgPacket(resolveTarget(e), text, color),
+    );
+  }
+
+  async uploadLong(
+    e: ChatEvent,
+    content: PbMessage | PbMessage[],
+  ): Promise<string | undefined> {
     const target = resolveTarget(e);
-    const compressed = await gzipBuffer(protobuf.encode(buildMultiMsgBody(content)));
+    const compressed = await gzipBuffer(
+      protobuf.encode(buildMultiMsgBody(content)),
+    );
     const packet = buildSendLongMsgPacket(target, compressed);
     const response = await this.send(
       "trpc.group.long_msg_interface.MsgService.SsoSendLongMsg",
@@ -93,7 +130,10 @@ export class PacketClientImpl implements PacketClient {
     return resid === undefined || resid === null ? undefined : String(resid);
   }
 
-  async sendLong(e: ChatEvent, content: PbMessage): Promise<PbMessage | null> {
+  async sendLong(
+    e: ChatEvent,
+    content: PbMessage | PbMessage[],
+  ): Promise<PbMessage | null> {
     const resid = await this.uploadLong(e, content);
     if (!resid) {
       throw new Error("上传长消息失败，未获取到 resid");
@@ -125,11 +165,19 @@ export class PacketClientImpl implements PacketClient {
     if (isSeq) {
       seq = Number(messageId);
     } else {
-      const info = await this.bot.api<{ real_seq?: number | string } | null | undefined>(
+      const info = await this.bot.api<GetMsgResult | null | undefined>(
         "get_msg",
         { message_id: messageId },
       );
-      seq = Number(info?.real_seq);
+      // NapCat 返回 real_seq，LLBot（GoCQ 兼容）返回 message_seq 等
+      const raw =
+        info?.real_seq ??
+        info?.message_seq ??
+        info?.seq ??
+        info?.real_id ??
+        info?.message_id ??
+        messageId;
+      seq = Number(raw);
     }
     if (!Number.isFinite(seq)) {
       throw new Error("获取 seq 失败，请尝试更新实现端版本");
@@ -141,7 +189,8 @@ export class PacketClientImpl implements PacketClient {
   }
 
   processJSON(input: string | PbMessage): PbMessage {
-    const parsed = typeof input === "string" ? (JSON.parse(input) as PbMessage) : input;
+    const parsed =
+      typeof input === "string" ? (JSON.parse(input) as PbMessage) : input;
     return processJsonValue(parsed);
   }
 
@@ -171,9 +220,7 @@ export class PacketClientImpl implements PacketClient {
   }
 }
 
-function nestedMessage(
-  value: unknown,
-): Record<string, PbValue> | undefined {
+function nestedMessage(value: unknown): Record<string, PbValue> | undefined {
   if (
     value !== null &&
     typeof value === "object" &&

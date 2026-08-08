@@ -63,11 +63,26 @@ export interface PacketClient {
   /** 直接发送 hex 编码的原始包 */
   sendRaw(cmd: string, hex: string): Promise<PbMessage | null>;
   /** 以普通消息形式发送消息元素 */
-  sendElement(e: ChatEvent, content: PbMessage): Promise<PbMessage | null>;
+  sendElement(
+    e: ChatEvent,
+    content: PbMessage | PbMessage[],
+  ): Promise<PbMessage | null>;
+  /** 发送普通文本，可选填写 QQ Text.attr.color */
+  sendText(
+    e: ChatEvent,
+    text: string,
+    color?: number,
+  ): Promise<PbMessage | null>;
   /** 以长消息形式发送消息元素（先上传，再发送引用元素） */
-  sendLong(e: ChatEvent, content: PbMessage): Promise<PbMessage | null>;
+  sendLong(
+    e: ChatEvent,
+    content: PbMessage | PbMessage[],
+  ): Promise<PbMessage | null>;
   /** 上传长消息，返回 resid */
-  uploadLong(e: ChatEvent, content: PbMessage): Promise<string | undefined>;
+  uploadLong(
+    e: ChatEvent,
+    content: PbMessage | PbMessage[],
+  ): Promise<string | undefined>;
   /** 通过 resid 拉取长消息内容 */
   recvLong(resid: string): Promise<PbMessage>;
   /** 通过消息 ID 或 seq 获取群消息 */

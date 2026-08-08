@@ -24,10 +24,13 @@ export class LLBotTransport implements RawPacketTransport {
         hex: request.hex,
       },
     );
+    if (!data || typeof data.hex !== "string") {
+      throw new Error("LLBot send_pb 返回中缺少 hex");
+    }
     return {
-      hex: data?.hex ?? null,
-      cmd: data?.cmd ?? request.cmd,
-      echo: data?.echo,
+      hex: data.hex,
+      cmd: data.cmd || request.cmd,
+      echo: data.echo,
     };
   }
 }

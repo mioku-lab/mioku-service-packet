@@ -52,6 +52,13 @@ export {
   NapCatTransport,
   LLBotTransport,
 } from "./adapters";
+export {
+  buildSendMsgPacket,
+  buildTextElement,
+  buildTextMsgPacket,
+  randomClientSequence,
+  randomUInt,
+} from "./core/builder";
 export type {
   RawPacketRequest,
   RawPacketResponse,

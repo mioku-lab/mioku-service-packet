@@ -8,7 +8,7 @@
 
 - **通用 Protobuf 编解码**：无需 `.proto` 文件，数字字段号 + JS 值类型驱动（number → int32、bigint → int64、string → string、boolean → bool、Buffer → bytes、object → 嵌套 message、array → 重复字段）
 - **发送原始包**：`send(cmd, packet)` / `sendRaw(cmd, hex)`，自动编码请求并解码响应
-- **发送消息元素**：`sendElement(e, content)`（`MessageSvc.PbSendMsg`）
+- **发送消息元素**：`sendElement(e, content)` / `sendText(e, text, color?)`（`MessageSvc.PbSendMsg`）
 - **长消息**：`sendLong` / `uploadLong` / `recvLong`（gzip 上传 → resid 引用 → 拉取解压）
 - **获取群消息**：`getMsg(e, message_id)`，经 `real_seq` 反查
 - **JSON 约定**：`hex->` / `L` 后缀 / `$encode` 内联编码
@@ -41,10 +41,11 @@ const packet = getService(ctx, PacketService);
 // 绑定事件对应的 bot，自动识别实现端（get_version_info）
 const client = packet.create(ctx.pickBot(e.self_id));
 
-// 发送一条文本消息（字段号为逆向产物，仅作示意）
-await client.sendElement(e, {
-  "1": [{ "1": 0, "2": "Hello" }],
-});
+// 发送一条普通文本消息
+await client.sendText(e, "Hello");
+
+// 发送带 Text.attr.color 的文本，用于验证颜色字段是否被实现端保留
+await client.sendText(e, "Color probe", 400);
 
 // 发送长消息
 await client.sendLong(e, {
@@ -74,3 +75,9 @@ const content = client.processJSON({
 - NapCat `send_packet` 文档：https://napcat.apifox.cn/250286903e0
 - LLBot `send_pb` 文档：http://api.luckylillia.com/api-359521726
 - LLBot 文档站：https://luckylillia.com/
+
+## 关于灰字 / 灰条
+
+QQ 的“灰字”通常是 `GrayTip` 消息元素，而不是普通文本附加颜色。NapCat 与 LLOneBot 的当前源码都将 JSON 灰条暴露为 QQNT Kernel 的 `addLocalJsonGrayTipMsg` 本地接口；这不是 `MessageSvc.PbSendMsg` 的远程群发包，因此本服务目前不宣称支持远程 GrayTip。
+
+`sendText(..., 400)` 只会在普通 `Text.attr.color` 上写入颜色字段；它是可验证的文本样式探针，不等同于灰字。`sendElement` 仍保留用于手写/逆向消息元素。

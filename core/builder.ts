@@ -11,6 +11,11 @@ export function randomUInt(): number {
   return crypto.randomBytes(4).readUInt32BE();
 }
 
+/** MessageSvc.PbSendMsg 要求的客户端序号，QQ 客户端通常使用 10000~99999。 */
+export function randomClientSequence(): number {
+  return 10_000 + Math.floor(Math.random() * 90_000);
+}
+
 export function isGroupEvent(
   e: ChatEvent,
 ): e is Extract<ChatEvent, { message_type: "group" }> {
@@ -28,10 +33,11 @@ export function resolveTarget(e: ChatEvent): ChatTarget {
     : { kind: "private", id: e.user_id };
 }
 
-/** MessageSvc.PbSendMsg 消息包：路由 + 消息元素 + 随机校验字段 */
+/** MessageSvc.PbSendMsg 消息包：路由 + RichText + 客户端序号/随机数 */
 export function buildSendMsgPacket(
   target: ChatTarget,
-  content: PbMessage,
+  content: PbMessage | PbMessage[],
+  textColor?: number,
 ): PbMessage {
   return {
     "1": {
@@ -40,14 +46,33 @@ export function buildSendMsgPacket(
       },
     },
     "2": { "1": 1, "2": 0, "3": 0 },
-    "3": { "1": { "2": content } },
-    "4": randomUInt(),
+    "3": {
+      "1": {
+        ...(textColor === undefined ? {} : { "1": { "4": textColor } }),
+        "2": content,
+      },
+    },
+    "4": randomClientSequence(),
     "5": randomUInt(),
   };
 }
 
+/** QQ NT 的普通文本元素。 */
+export function buildTextElement(text: string): PbMessage {
+  return { "1": { "1": text } };
+}
+
+/** 普通文本消息的元素与可选 Text.attr.color。 */
+export function buildTextMsgPacket(
+  target: ChatTarget,
+  text: string,
+  color?: number,
+): PbMessage {
+  return buildSendMsgPacket(target, [buildTextElement(text)], color);
+}
+
 /** 长消息内容结构：MultiMsg 消息体 */
-export function buildMultiMsgBody(content: PbMessage): PbMessage {
+export function buildMultiMsgBody(content: PbMessage | PbMessage[]): PbMessage {
   return {
     "2": {
       "1": "MultiMsg",
