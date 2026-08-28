@@ -34,13 +34,13 @@ export interface VersionInfo {
   protocol_version?: string;
 }
 
-/** 机器人句柄的最小结构，接受 napcat-sdk 的 NapCat / ExtendedNapCat */
+/** 机器人句柄的最小结构，接受 mioku 的 Bot 实例 */
 export interface BotLike {
   uin?: number;
   user_id?: number;
   app_name?: string;
   app_version?: string;
-  api<T = unknown>(
+  sendApi<T = unknown>(
     action: string,
     params?: Record<string, unknown>,
   ): Promise<T>;

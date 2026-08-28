@@ -5,7 +5,7 @@ export async function fetchVersionInfo(
 ): Promise<VersionInfo | null> {
   for (const action of ["get_version_info", "get_version"] as const) {
     try {
-      const info = await bot.api<Partial<VersionInfo> | null | undefined>(
+      const info = await bot.sendApi<Partial<VersionInfo> | null | undefined>(
         action,
       );
       if (info && typeof info === "object") {

@@ -1,4 +1,4 @@
-import { logger } from "mioki";
+import { logger } from "mioku";
 import { fetchVersionInfo } from "./adapters";
 import { PacketClientImpl } from "./client";
 import { processJSON as processJsonValue, replacer as jsonReplacer } from "./core/json";

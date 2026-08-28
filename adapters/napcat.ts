@@ -11,7 +11,7 @@ export class NapCatTransport implements RawPacketTransport {
   constructor(private readonly bot: BotLike) {}
 
   async send(request: RawPacketRequest): Promise<RawPacketResponse> {
-    const hex = await this.bot.api<string | null>("send_packet", {
+    const hex = await this.bot.sendApi<string | null>("send_packet", {
       cmd: request.cmd,
       data: request.hex,
       rsp: true,

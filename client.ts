@@ -1,4 +1,4 @@
-import { logger } from "mioki";
+import { logger } from "mioku";
 import {
   createTransport,
   detectImplementation,
@@ -165,7 +165,7 @@ export class PacketClientImpl implements PacketClient {
     if (isSeq) {
       seq = Number(messageId);
     } else {
-      const info = await this.bot.api<GetMsgResult | null | undefined>(
+      const info = await this.bot.sendApi<GetMsgResult | null | undefined>(
         "get_msg",
         { message_id: messageId },
       );

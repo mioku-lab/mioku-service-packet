@@ -17,7 +17,7 @@ export class LLBotTransport implements RawPacketTransport {
   constructor(private readonly bot: BotLike) {}
 
   async send(request: RawPacketRequest): Promise<RawPacketResponse> {
-    const data = await this.bot.api<LLBotSendPbResponse | null | undefined>(
+    const data = await this.bot.sendApi<LLBotSendPbResponse | null | undefined>(
       "send_pb",
       {
         cmd: request.cmd,
