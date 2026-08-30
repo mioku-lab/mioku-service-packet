@@ -1,6 +1,6 @@
 {
   "name": "mioku-service-packet",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "为插件提供发送任意 ProtoBuf 数据包的能力",
   "main": "index.ts",
   "type": "module",
@@ -12,11 +12,9 @@
     "url": "https://github.com/mioku-lab/mioku-service-packet.git"
   },
   "peerDependencies": {
-    "mioku": "^0.8.0",
-    "mioki": "^0.16.0"
+    "mioku": "^1.0.0"
   },
   "devDependencies": {
-    "mioku": "workspace:*",
-    "mioki": "^0.16.0"
+    "mioku": "workspace:*"
   }
 }
